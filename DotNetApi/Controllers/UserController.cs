@@ -34,7 +34,7 @@ namespace DotNetApi.Controllers
                             [Gender],
                             [Active]  
                         FROM TutorialAppSchema.Users";
-            IEnumerable < User > users =_dapper.LoadData<User>(sql);
+            IEnumerable<User> users = _dapper.LoadData<User>(sql);
             return users;
 
         }
@@ -53,6 +53,50 @@ namespace DotNetApi.Controllers
             User user = _dapper.LoadDataSingle<User>(sql);
             return user;
 
+        }
+
+        [HttpPut("EditUser")]
+
+        public IActionResult EditUser(User user)
+        {
+            string sql = @"
+            UPDATE TutorialAppSchema.Users
+               SET [FirstName] = '" + user.FirstName +
+                "',[LastName]='" + user.LastName +
+                "',[Email]='" + user.Email +
+                "',[Gender]='" + user.Gender +
+                "',[Active]= '" + user.Active +
+               "' WHERE UserId = " + user.UserId;
+
+            if (_dapper.ExecutSql(sql))
+            {
+
+                return Ok();
+            }
+            throw new Exception("Failed to Update User");
+
+        }
+
+        [HttpPost("AddUser")]
+        public IActionResult AddUser(User user)
+        {
+            string sql = @"INSERT INTO TutorialAppSchema.Users(
+                        [FirstName],
+                        [LastName],[Email],[Gender],[Active])
+                        VALUES("+
+                                "'"+user.FirstName+
+                                "', '"+user.LastName+
+                                "', '"+user.Email +
+                                "', '"+user.Gender+
+                                "', '" +user.Active +
+                "')";
+            Console.WriteLine(sql);
+         
+            if (_dapper.ExecutSql(sql))
+            {
+                return Ok();
+            }
+            throw new Exception("Failed to Update User");
         }
 
     }
