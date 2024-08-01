@@ -1,4 +1,4 @@
-namespace DotNetApi
+namespace DotNetApi.Models
 {
     public class WeatherForecast
     {
