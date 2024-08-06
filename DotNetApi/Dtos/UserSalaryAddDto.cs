@@ -1,8 +1,7 @@
-﻿namespace DotNetApi.Models
+﻿namespace DotNetApi.Dtos
 {
-    public  class UserSalary
+    public partial class UserSalaryAddDto
     {
-        public int UserId { get; set; }
         public decimal Salary { get; set; }
         public decimal AvgSalary { get; set; }
 

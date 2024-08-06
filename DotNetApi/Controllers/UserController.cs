@@ -18,12 +18,6 @@ namespace DotNetApi.Controllers
             _dapper = new DataContextDapper(config);
         }
 
-        [HttpGet("TestConnection")]
-        public DateTime TestConnection()
-        {
-            return _dapper.LoadDataSingle<DateTime>("SELECT GETDATE()");
-        }
-
         [HttpGet("GetUsers")]
         public IEnumerable<UserToAddDto> GetUsers()
         {
@@ -91,13 +85,12 @@ namespace DotNetApi.Controllers
                                 "', '"+user.Gender+
                                 "', '" +user.Active +
                 "')";
-            Console.WriteLine(sql);
          
             if (_dapper.ExecutSql(sql))
             {
                 return Ok();
             }
-            throw new Exception("Failed to Update User");
+            throw new Exception("Failed to Add User");
         }
 
         [HttpDelete("DeleteUser/{userId}")]
@@ -111,7 +104,6 @@ namespace DotNetApi.Controllers
                 return Ok();
             }
             throw new Exception("Failed to delete User");
-
 
         }
 
