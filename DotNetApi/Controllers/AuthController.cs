@@ -1,11 +1,15 @@
 ﻿using DotNetApi.Data;
 using DotNetApi.Dtos;
+using DotNetApi.Models;
 using Microsoft.AspNetCore.Cryptography.KeyDerivation;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
+using Microsoft.IdentityModel.Tokens;
 using System.Data;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -17,6 +21,9 @@ namespace DotNetApi.Controllers
     {
         private readonly DataContextDapper _dapper;
         private readonly IConfiguration _config;
+
+        public object SymetricSecuirtyKey { get; private set; }
+
         public AuthController(IConfiguration config)
         {
             _dapper = new DataContextDapper(config);
@@ -154,7 +161,21 @@ namespace DotNetApi.Controllers
                     // Execute the SQL query with parameters and return success if it works
                     if (_dapper.ExecutSqlWithParameter(sqlAddAuth, sqlParameters))
                     {
+                        string sqlAddUser = @"INSERT INTO TutorialAppSchema.Users(
+                        [FirstName],
+                        [LastName],[Email],[Gender],[Active])
+                        VALUES(" +
+                        "'" + userForRegistration.FirstName +
+                        "', '" + userForRegistration.LastName +
+                        "', '" + userForRegistration.Email +
+                        "', '" + userForRegistration.Gender +
+                               "', 1)";
+                        if (_dapper.ExecutSql(sqlAddUser))
+                        {
                         return Ok();
+
+                        }
+                        throw new Exception("Failed to add user.");
                     }
                     throw new Exception("Failed to register user.");
 
@@ -184,8 +205,15 @@ namespace DotNetApi.Controllers
                 }
 
             }
+            string userSqlId = @"SELECT UserId FROM TutorialAppSchema.Users WHERE Email = '" + userForLogin.Email + "'";
+            Console.WriteLine(userSqlId);
 
-            return Ok();
+            int userId = _dapper.LoadDataSingle<int>(userSqlId);
+
+            return Ok(new Dictionary<string, string>
+            {
+                {"token",CreateToken(userId) }
+            });
         }
 
         private byte[] GetPasswordHash(string password, byte[] passwordSalt)
@@ -201,6 +229,32 @@ namespace DotNetApi.Controllers
                 prf: KeyDerivationPrf.HMACSHA256,
                 iterationCount: 100000,
                 numBytesRequested: 256 / 8);
+        }
+
+        private string CreateToken(int userId)
+        {
+            Claim[] claims = new Claim[]
+            {
+                new Claim("userId",userId.ToString())
+            };
+            string? tokenKeyString = _config.GetSection("AppSettings:TokenKey").Value;
+
+            SymmetricSecurityKey tokenKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(tokenKeyString != null ? tokenKeyString : ""));
+
+            SigningCredentials credentials = new SigningCredentials(tokenKey, SecurityAlgorithms.HmacSha512Signature);
+
+            SecurityTokenDescriptor descriptor = new SecurityTokenDescriptor()
+            {
+                Subject = new ClaimsIdentity(claims),
+                SigningCredentials = credentials,
+                Expires = DateTime.Now.AddDays(1)
+            };
+
+            JwtSecurityTokenHandler tokenHandler = new JwtSecurityTokenHandler();
+
+            SecurityToken token = tokenHandler.CreateToken(descriptor);
+
+            return tokenHandler.WriteToken(token);
         }
     }
 }
