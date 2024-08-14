@@ -1,5 +1,6 @@
 ﻿using DotNetApi.Data;
 using DotNetApi.Dtos;
+using DotNetApi.Helper;
 using DotNetApi.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cryptography.KeyDerivation;
@@ -22,14 +23,15 @@ namespace DotNetApi.Controllers
     public class AuthController : ControllerBase
     {
         private readonly DataContextDapper _dapper;
-        private readonly IConfiguration _config;
-
+        /*private readonly IConfiguration _config;*/
+        private readonly AuthHelper _authHelper;
 /*        public object SymetricSecuirtyKey { get; private set; }
 */
         public AuthController(IConfiguration config)
         {
             _dapper = new DataContextDapper(config);
-            _config = config;
+            /*_config = config;*/
+            _authHelper = new AuthHelper(config);
         }
 
         [AllowAnonymous]
@@ -55,7 +57,7 @@ namespace DotNetApi.Controllers
                     {
                         rng.GetNonZeroBytes(passwordSalt);
                     }
-                    byte[] passwordHash = GetPasswordHash(userForRegistration.Password, passwordSalt);
+                    byte[] passwordHash = _authHelper.GetPasswordHash(userForRegistration.Password, passwordSalt);
                     // SQL query to insert the new user into the database
                     string sqlAddAuth = @"INSERT INTO TutorialAppSchema.Auth ([Email],
                                                 [PasswordHash],
@@ -110,7 +112,7 @@ namespace DotNetApi.Controllers
                                             [PasswordSalt] FROM TutorialAppSchema.Auth WHERE Email = '" +
                                             userForLogin.Email + "'";
             UserForLoginConfirmationDto userForConfirmation = _dapper.LoadDataSingle<UserForLoginConfirmationDto>(sqlForHashAndSalt);
-            byte[] passwordHash = GetPasswordHash(userForLogin.Password, userForConfirmation.PasswordSalt);
+            byte[] passwordHash = _authHelper.GetPasswordHash(userForLogin.Password, userForConfirmation.PasswordSalt);
             // if (passwordHash == userForConfirmation.PasswordHash)  //won't work   
 
             for (int index = 0; index < passwordHash.Length; index++)
@@ -128,7 +130,7 @@ namespace DotNetApi.Controllers
 
             return Ok(new Dictionary<string, string>
             {
-                {"token",CreateToken(userId) }
+                {"token",_authHelper.CreateToken(userId) }
             });
         }
 
@@ -138,57 +140,8 @@ namespace DotNetApi.Controllers
             string sqlGetUserId = @"SELECT UserId FROM TutorialAppSchema.Users WHERE UserId = '" + User.FindFirst("userId")?.Value + "'";
 
             int userId = _dapper.LoadDataSingle<int>(sqlGetUserId);
-            return CreateToken(userId);
+            return _authHelper.CreateToken(userId);
         }
-        private byte[] GetPasswordHash(string password, byte[] passwordSalt)
-        {
-            // Combine the salt with a password key from the configuration
-            string passwordSaltPlusString = _config.GetSection("AppSettings.PasswordKey").Value +
-                Convert.ToBase64String(passwordSalt);
-
-            // Create a hash of the password using the salt
-            return KeyDerivation.Pbkdf2(
-                password: password,
-                salt: Encoding.ASCII.GetBytes(passwordSaltPlusString),
-                prf: KeyDerivationPrf.HMACSHA256,
-                iterationCount: 100000,
-                numBytesRequested: 256 / 8);
-        }
-
-        // Method to create a JWT token for a user
-        private string CreateToken(int userId)
-        {
-            // Create an array of claims. A claim is a statement about the user (e.g., user ID).
-            Claim[] claims = new Claim[]
-            {
-                new Claim("userId",userId.ToString())
-                // Add a claim for the user ID
-            };
-            // Retrieve the token key from the configuration settings
-            string? tokenKeyString = _config.GetSection("AppSettings:TokenKey").Value;
-
-            // Create a symmetric security key using the token key string
-            SymmetricSecurityKey tokenKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(tokenKeyString != null ? tokenKeyString : ""));
-
-            // Create signing credentials using the security key and the HMAC SHA-512 algorithm
-            SigningCredentials credentials = new SigningCredentials(tokenKey, SecurityAlgorithms.HmacSha512Signature);
-
-            // Describe the security token, including the claims, signing credentials, and expiration time
-            SecurityTokenDescriptor descriptor = new SecurityTokenDescriptor()
-            {
-                Subject = new ClaimsIdentity(claims),
-                SigningCredentials = credentials,
-                Expires = DateTime.Now.AddDays(1)
-                // Set the token to expire in 1 day
-            };
-            // Create a token handler to generate the token
-            JwtSecurityTokenHandler tokenHandler = new JwtSecurityTokenHandler();
-            
-            // Create the security token using the descriptor
-            SecurityToken token = tokenHandler.CreateToken(descriptor);
-
-            // Write the token as a string and return it
-            return tokenHandler.WriteToken(token);
-        }
+        
     }
 }

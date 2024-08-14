@@ -48,28 +48,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 });
 
 
-/*string? tokenKeyString = builder.Configuration.GetSection("AppSettings:TokenKey").Value;
 
-SymmetricSecurityKey tokenKey = new SymmetricSecurityKey(
-        Encoding.UTF8.GetBytes(
-            tokenKeyString != null ? tokenKeyString : ""
-        )
-    );
-
-TokenValidationParameters tokenValidationParameters = new TokenValidationParameters()
-{
-    IssuerSigningKey = tokenKey,
-    ValidateIssuerSigningKey = true,
-    ValidateIssuer = false,
-    ValidateAudience = false
-};
-
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(options =>
-    {
-        options.TokenValidationParameters = tokenValidationParameters;
-    });
-*/
 
 var app = builder.Build();
 
