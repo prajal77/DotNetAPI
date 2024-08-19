@@ -82,7 +82,6 @@ namespace DotNetApi.Controllers
                             [PostUpdated] FROM TutorialAppSchema.Posts  
                                 WHERE PostTitle LIKE '%" + searchParam + @"%'
                                 OR PostContent LIKE '%" + searchParam +"%'";
-            Console.WriteLine(sql);
             return _dapper.LoadData<Post>(sql);
         }
 
