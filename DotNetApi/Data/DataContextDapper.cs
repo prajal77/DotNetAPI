@@ -1,6 +1,7 @@
 ﻿using Dapper;
 using Microsoft.Data.SqlClient;
 using System.Data;
+using System.Data.Common;
 
 namespace DotNetApi.Data
 {
@@ -34,11 +35,12 @@ namespace DotNetApi.Data
             IDbConnection dbConnection = new SqlConnection(_config.GetConnectionString("DefaultConnection"));
             return dbConnection.Execute(sql);
         }
-        public bool ExecutSqlWithParameter(string sql,List<SqlParameter> parameters)
+        public bool ExecutSqlWithParameter(string sql,DynamicParameters parameters)
         {
-            SqlCommand commandWithParams = new SqlCommand(sql);
+            IDbConnection dbConnection = new SqlConnection(_config.GetConnectionString("DefaultConnection"));
+            return dbConnection.Execute(sql, parameters) > 0;
 
-            foreach(SqlParameter param in parameters)
+            /*foreach(SqlParameter param in parameters)
             {
                 commandWithParams.Parameters.Add(param);
             }
@@ -51,7 +53,7 @@ namespace DotNetApi.Data
             int rowsAffected = commandWithParams.ExecuteNonQuery();
             dbConnection.Close();
 
-            return rowsAffected > 0;
+            return rowsAffected > 0;*/
         }
         public IEnumerable<T> LoadDataParameters<T>(string sql, DynamicParameters parameters)
         {
