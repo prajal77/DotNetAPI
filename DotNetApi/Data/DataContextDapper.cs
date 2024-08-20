@@ -53,5 +53,15 @@ namespace DotNetApi.Data
 
             return rowsAffected > 0;
         }
+        public IEnumerable<T> LoadDataParameters<T>(string sql, DynamicParameters parameters)
+        {
+            IDbConnection dbConnection = new SqlConnection(_config.GetConnectionString("DefaultConnection"));
+            return dbConnection.Query<T>(sql, parameters);
+        }
+        public T LoadDataSingleParameters<T>(string sql, DynamicParameters parameters)
+        {
+            IDbConnection dbConnection = new SqlConnection(_config.GetConnectionString("DefaultConnection"));
+            return dbConnection.QuerySingle<T>(sql, parameters);
+        }
     }
 }
