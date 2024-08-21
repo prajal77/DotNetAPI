@@ -1,4 +1,5 @@
-﻿using Dapper;
+﻿using AutoMapper;
+using Dapper;
 using DotNetApi.Data;
 using DotNetApi.Dtos;
 using DotNetApi.Helper;
@@ -26,13 +27,21 @@ namespace DotNetApi.Controllers
         private readonly DataContextDapper _dapper;
         /*private readonly IConfiguration _config;*/
         private readonly AuthHelper _authHelper;
-/*        public object SymetricSecuirtyKey { get; private set; }
-*/
+        //public object SymetricSecuirtyKey { get; private set; }
+
+        private readonly ReusableSql _reusableSql;
+        private readonly IMapper _mapper;
+
         public AuthController(IConfiguration config)
         {
             _dapper = new DataContextDapper(config);
             /*_config = config;*/
             _authHelper = new AuthHelper(config);
+            _reusableSql = new ReusableSql(config);
+            _mapper = new Mapper(new MapperConfiguration(cfg =>
+            {
+                cfg.CreateMap<UserForRegistrationDto, UserComplete>();
+            }));
         }
 
         [AllowAnonymous]
@@ -59,18 +68,9 @@ namespace DotNetApi.Controllers
 
                     if (_authHelper.SetPassword(userForSetPassword))
                     {
-                        string sqlAddUser = @"EXEC TutorialAppSchema.spUser_Upsert 
-                                                @FirstName = '" + userForRegistration.FirstName +
-                                            "', @LastName = '" + userForRegistration.LastName +
-                                            "', @Email = '" + userForRegistration.Email +
-                                            "', @Gender = '" + userForRegistration.Gender +
-                                            "', @Active = 1" +
-                                            ", @JobTitle = '" + userForRegistration.JobTitle +
-                                            "', @Department = '" + userForRegistration.Department +
-                                            "', @Salary = '" + userForRegistration.Salary + "'" ;
-                        Console.WriteLine(sqlAddUser);
-
-                        if (_dapper.ExecutSql(sqlAddUser))
+                        UserComplete userComplete = _mapper.Map<UserComplete>(userForRegistration);
+                        userComplete.Active = true;
+                        if (_reusableSql.Equals(userComplete))
                         {
                         return Ok();
 

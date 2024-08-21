@@ -29,10 +29,8 @@ builder.Services.AddCors((options) =>
         .AllowCredentials();
     });
 });
-builder.Services.AddScoped<IUserRepository, UserRepository>();
 
 string? tokenKeyString = builder.Configuration.GetSection("AppSettings:TokenKey").Value;
-
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 .AddJwtBearer(option => option.TokenValidationParameters = new TokenValidationParameters()
@@ -46,9 +44,6 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                     ValidateAudience = false,
 
                 });
-
-
-
 
 var app = builder.Build();
 
